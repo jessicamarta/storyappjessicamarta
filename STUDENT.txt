@@ -1,0 +1,5 @@
+Nama: Jessica Marta Gracesela Silaen
+ID : f891d5x0893
+Project: Dicoding Story App - Submission
+Map Service: OpenStreetMap (no API key)
+API: https://story-api.dicoding.dev/v1

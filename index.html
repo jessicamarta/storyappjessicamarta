@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="shortcut icon" href="/favicon.png" />
+    <title>Dicoding Story App</title>
+
+    <!-- Styles from public -->
+    <link rel="stylesheet" href="/styles/styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#app">Skip to content</a>
+
+    <header>
+      <div class="main-header container">
+        <a class="brand-name" href="#/">Dicoding Story</a>
+
+        <nav
+          id="nav-list"
+          class="navigation-drawer"
+          aria-label="Main Navigation"
+        ></nav>
+
+        <button
+          id="drawer-button"
+          class="drawer-button"
+          aria-label="Open navigation"
+        >
+          ☰
+        </button>
+      </div>
+    </header>
+
+    <main id="app" class="main-content" tabindex="-1"></main>
+
+    <!-- Leaflet -->
+
+    <!-- Main Script (Vite will process src modules) -->
+
+    <script type="module" src="./src/scripts/index.js"></script>
+  </body>
+</html>
