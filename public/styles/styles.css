@@ -130,3 +130,32 @@ button {
   margin-top: 1rem;
   border-radius: 8px;
 }
+
+/* Button variants */
+.btn-primary {
+  background: var(--primary);
+}
+
+.btn-secondary {
+  background: var(--secondary);
+}
+
+.btn-danger {
+  background: var(--danger);
+}
+
+/* DB Controls */
+.db-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+#dbStatus {
+  padding: 6px 12px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  font-size: 14px;
+}

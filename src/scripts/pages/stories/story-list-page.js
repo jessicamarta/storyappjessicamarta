@@ -7,8 +7,17 @@ export default class StoryListPage {
     return `
       <section class="stories">
         <h2 tabindex="0">Cerita Terbaru</h2>
+        
+        <!-- Button untuk manajemen IndexedDB -->
+        <div class="db-controls">
+          <button id="btnLoadFromAPI" class="btn-primary">Load dari API</button>
+          <button id="btnLoadFromDB" class="btn-secondary">Load dari IndexedDB</button>
+          <button id="btnClearDB" class="btn-danger">Clear IndexedDB</button>
+          <span id="dbStatus" aria-live="polite"></span>
+        </div>
+
         <div id="storyList" class="story-list">
-          <p>Sedang memuat cerita...</p>
+          <p>Pilih sumber data...</p>
         </div>
         <div id="map" style="height: 300px; margin-top: 1rem;"></div>
       </section>
@@ -16,60 +25,81 @@ export default class StoryListPage {
   }
 
   async afterRender() {
-    // Tunggu DOM benar-benar siap agar #storyList terpasang
     await new Promise((r) => requestAnimationFrame(r));
 
     const listEl = document.getElementById("storyList");
+    const dbStatus = document.getElementById("dbStatus");
+
     if (!listEl) {
-      console.error(
-        "❌ Elemen #storyList tidak ditemukan di DOM (cek render)."
-      );
+      console.error("❌ #storyList not found");
       return;
     }
 
-    listEl.innerHTML = "<p>Memuat data cerita...</p>";
+    // ✅ Button handlers untuk CRUD IndexedDB
+    document.getElementById("btnLoadFromAPI").addEventListener("click", () => {
+      this._loadFromAPI(listEl, dbStatus);
+    });
+
+    document.getElementById("btnLoadFromDB").addEventListener("click", () => {
+      this._loadFromIndexedDB(listEl, dbStatus);
+    });
+
+    document
+      .getElementById("btnClearDB")
+      .addEventListener("click", async () => {
+        await StoryDB.clear();
+        dbStatus.textContent = "✅ IndexedDB cleared!";
+        listEl.innerHTML = "<p>Data IndexedDB telah dihapus.</p>";
+      });
+
+    // Auto load from IndexedDB on first load
+    this._loadFromIndexedDB(listEl, dbStatus);
+  }
+
+  // ✅ CREATE & READ: Load dari API dan simpan ke IndexedDB
+  async _loadFromAPI(listEl, statusEl) {
+    listEl.innerHTML = "<p>Loading dari API...</p>";
+    statusEl.textContent = "⏳ Fetching...";
 
     try {
-      // ✅ Ambil data dari API dan tunggu hasilnya
       const data = await fetchStories({ page: 1, size: 20, location: 1 });
       const stories = data?.listStory ?? [];
 
-      // Simpan ke IndexedDB (cache)
+      // ✅ CREATE: Simpan ke IndexedDB
       for (const story of stories) {
         await StoryDB.put(story);
       }
 
-      // Render daftar story
       this._renderStories(stories);
+      this._renderMap(stories);
 
-      // Tampilkan peta
-      const mapEl = document.getElementById("map");
-      if (mapEl) {
-        const map = initMap(mapEl);
-        addMarkersToMap(map, stories);
-      }
-
-      console.log("✅ Cerita berhasil dimuat dari API dan dirender.");
+      statusEl.textContent = `✅ ${stories.length} stories loaded from API & saved to IndexedDB`;
     } catch (error) {
-      console.warn(
-        "⚠️ Gagal memuat data dari API, ambil dari IndexedDB:",
-        error
-      );
-      const offlineStories = await StoryDB.getAll();
+      console.error("❌ Failed to load from API:", error);
+      statusEl.textContent = "❌ API error, coba load dari IndexedDB";
+      listEl.innerHTML = "<p>Gagal load dari API. Gunakan IndexedDB.</p>";
+    }
+  }
 
-      if (offlineStories.length > 0) {
-        this._renderStories(offlineStories);
+  // ✅ READ: Load dari IndexedDB
+  async _loadFromIndexedDB(listEl, statusEl) {
+    listEl.innerHTML = "<p>Loading dari IndexedDB...</p>";
+    statusEl.textContent = "⏳ Reading...";
 
-        const mapEl = document.getElementById("map");
-        if (mapEl) {
-          const map = initMap(mapEl);
-          addMarkersToMap(map, offlineStories);
-        }
+    try {
+      const stories = await StoryDB.getAll();
 
-        console.log("📦 Cerita dimuat dari IndexedDB (offline mode).");
+      if (stories.length > 0) {
+        this._renderStories(stories);
+        this._renderMap(stories);
+        statusEl.textContent = `✅ ${stories.length} stories loaded from IndexedDB (offline)`;
       } else {
-        listEl.innerHTML = "<p>Tidak ada data yang bisa ditampilkan.</p>";
+        listEl.innerHTML = "<p>IndexedDB kosong. Load dari API dulu.</p>";
+        statusEl.textContent = "ℹ️ No data in IndexedDB";
       }
+    } catch (error) {
+      console.error("❌ Failed to read IndexedDB:", error);
+      statusEl.textContent = "❌ IndexedDB error";
     }
   }
 
@@ -82,7 +112,6 @@ export default class StoryListPage {
       return;
     }
 
-    // Gunakan join() agar tidak ada koma
     listEl.innerHTML = stories
       .map(
         (story) => `
@@ -96,5 +125,13 @@ export default class StoryListPage {
       `
       )
       .join("");
+  }
+
+  _renderMap(stories) {
+    const mapEl = document.getElementById("map");
+    if (!mapEl) return;
+
+    const map = initMap(mapEl);
+    addMarkersToMap(map, stories);
   }
 }

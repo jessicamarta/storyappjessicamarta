@@ -1,48 +1,44 @@
 /* =============================== 
-   🌐 Service Worker - Story App (Final Version)
-   Fitur:
-   - Cache shell (file statis)
-   - Cache runtime (navigasi & assets)
-   - Cache API (data stories Dicoding)
-   - Push notification handler
+   🌐 Service Worker - Story App (FIXED VERSION)
 ================================== */
 
-const CACHE_NAME = "story-app-shell-v2";
-const RUNTIME_CACHE = "story-app-runtime-v2";
-const API_CACHE = "story-app-api-v2";
+const CACHE_NAME = "story-app-v3";
+const RUNTIME_CACHE = "story-runtime-v3";
+const API_CACHE = "story-api-v3";
 
-// ✅ BENAR
-const OFFLINE_URL = "./index.html";
+// ✅ Path untuk GitHub Pages deployment
+const BASE_PATH = "/storyappfinaljessica";
+
 const PRECACHE_URLS = [
-  "./",
-  "./index.html",
-  "./styles/styles.css",
-  "./manifest.json",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png",
-  "./scripts/index.js",
-  "./scripts/views/app.js",
-  "./scripts/views/pages/story-list-page.js",
-  "./scripts/data/api.js",
-  "./scripts/data/story-db.js",
+  `${BASE_PATH}/`,
+  `${BASE_PATH}/index.html`,
+  `${BASE_PATH}/styles/styles.css`,
+  `${BASE_PATH}/manifest.json`,
+  `${BASE_PATH}/icons/icon-192.png`,
+  `${BASE_PATH}/icons/icon-512.png`,
 ];
 
 // ===============================
-// 📦 Install - simpan shell awal
+// 📦 Install
 // ===============================
 self.addEventListener("install", (event) => {
+  console.log("⚙️ Service Worker: Installing...");
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .then((cache) => {
+        console.log("📦 Service Worker: Caching app shell");
+        return cache.addAll(PRECACHE_URLS);
+      })
       .then(() => self.skipWaiting())
   );
 });
 
 // ===============================
-// ♻️ Activate - hapus cache lama
+// ♻️ Activate
 // ===============================
 self.addEventListener("activate", (event) => {
+  console.log("♻️ Service Worker: Activating...");
   event.waitUntil(
     caches
       .keys()
@@ -55,7 +51,10 @@ self.addEventListener("activate", (event) => {
                 name !== RUNTIME_CACHE &&
                 name !== API_CACHE
             )
-            .map((name) => caches.delete(name))
+            .map((name) => {
+              console.log("🗑️ Service Worker: Deleting old cache:", name);
+              return caches.delete(name);
+            })
         );
       })
       .then(() => self.clients.claim())
@@ -63,119 +62,134 @@ self.addEventListener("activate", (event) => {
 });
 
 // ===============================
-// 🚀 Fetch - intercept semua request
+// 🚀 Fetch
 // ===============================
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   const url = new URL(req.url);
 
-  // ========== 1️⃣ Caching untuk API Dicoding ==========
+  // 1️⃣ API Dicoding - Network First with Cache Fallback
   if (url.origin === "https://story-api.dicoding.dev") {
     event.respondWith(
-      caches.open(API_CACHE).then(async (cache) => {
-        try {
-          const res = await fetch(req); // coba ambil dari jaringan
-          cache.put(req, res.clone()); // simpan versi terbaru
-          return res;
-        } catch (error) {
-          // jika offline → ambil dari cache
-          const cachedRes = await cache.match(req);
-          if (cachedRes) {
-            console.log("📦 Menggunakan data API dari cache:", req.url);
-            return cachedRes;
-          }
-          // jika tidak ada di cache → fallback kosong
-          return new Response(
-            JSON.stringify({
-              error: true,
-              message: "Offline - tidak ada data di cache",
-            }),
-            { headers: { "Content-Type": "application/json" } }
-          );
-        }
-      })
-    );
-    return; // penting agar tidak lanjut ke bawah
-  }
-
-  // ========== 2️⃣ Navigasi halaman (reload) ==========
-  if (req.mode === "navigate") {
-    event.respondWith(
-      caches.match(req).then(
-        (cached) =>
-          cached ||
-          fetch(req)
-            .then((res) => {
-              return caches.open(RUNTIME_CACHE).then((cache) => {
-                cache.put(req, res.clone());
-                return res;
-              });
-            })
-            .catch(() => caches.match(OFFLINE_URL))
-      )
+      fetch(req)
+        .then((response) => {
+          const responseClone = response.clone();
+          caches.open(API_CACHE).then((cache) => {
+            cache.put(req, responseClone);
+          });
+          return response;
+        })
+        .catch(() => {
+          return caches.match(req).then((cached) => {
+            if (cached) {
+              console.log("📦 Using cached API data:", req.url);
+              return cached;
+            }
+            return new Response(
+              JSON.stringify({
+                error: true,
+                message: "Offline - no cached data",
+              }),
+              { headers: { "Content-Type": "application/json" } }
+            );
+          });
+        })
     );
     return;
   }
 
-  // ========== 3️⃣ Aset lokal (CSS, JS, gambar, ikon, dll) ==========
-  if (url.origin === location.origin) {
+  // 2️⃣ Navigation - Cache First with Network Fallback
+  if (req.mode === "navigate") {
     event.respondWith(
-      caches.match(req).then(
-        (cached) =>
-          cached ||
-          fetch(req).then((res) => {
+      caches.match(req).then((cached) => {
+        if (cached) return cached;
+
+        return fetch(req)
+          .then((response) => {
             return caches.open(RUNTIME_CACHE).then((cache) => {
-              cache.put(req, res.clone());
-              return res;
+              cache.put(req, response.clone());
+              return response;
             });
           })
-      )
+          .catch(() => {
+            return caches.match(`${BASE_PATH}/index.html`);
+          });
+      })
     );
+    return;
   }
 
-  // ========== 4️⃣ Request eksternal (misal tile map) ==========
-  // Tidak dicache, langsung fetch
+  // 3️⃣ Local Assets - Cache First
+  if (url.origin === location.origin) {
+    event.respondWith(
+      caches.match(req).then((cached) => {
+        if (cached) return cached;
+
+        return fetch(req).then((response) => {
+          return caches.open(RUNTIME_CACHE).then((cache) => {
+            cache.put(req, response.clone());
+            return response;
+          });
+        });
+      })
+    );
+  }
 });
 
 // ===============================
-// 🔔 Push Notification Handler
+// 🔔 Push Notification
 // ===============================
 self.addEventListener("push", (event) => {
-  let data = { title: "New Story", options: { body: "You have a new story" } };
+  console.log("🔔 Push notification received:", event);
+
+  let notificationData = {
+    title: "New Story",
+    body: "Ada story baru!",
+    icon: `${BASE_PATH}/icons/icon-192.png`,
+    badge: `${BASE_PATH}/icons/icon-192.png`,
+  };
 
   if (event.data) {
     try {
-      data = event.data.json();
+      const data = event.data.json();
+      notificationData.title = data.title || notificationData.title;
+      notificationData.body =
+        (data.options && data.options.body) || notificationData.body;
     } catch (e) {
-      data = { title: "New Story", options: { body: event.data.text() } };
+      notificationData.body = event.data.text();
     }
   }
 
-  const title = data.title || "New Story";
-  const options = data.options || { body: "You have a new story" };
-
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    self.registration.showNotification(notificationData.title, {
+      body: notificationData.body,
+      icon: notificationData.icon,
+      badge: notificationData.badge,
+      tag: "dicoding-story",
+      vibrate: [200, 100, 200],
+    })
+  );
 });
 
 // ===============================
-// 🖱️ Notification Click Handler
+// 🖱️ Notification Click
 // ===============================
 self.addEventListener("notificationclick", (event) => {
+  console.log("🖱️ Notification clicked");
   event.notification.close();
-  const urlToOpen =
-    event.notification.data && event.notification.data.url
-      ? event.notification.data.url
-      : "/";
+
   event.waitUntil(
     clients
       .matchAll({ type: "window", includeUncontrolled: true })
-      .then((windowClients) => {
-        for (let i = 0; i < windowClients.length; i++) {
-          const client = windowClients[i];
-          if (client.url === urlToOpen && "focus" in client)
+      .then((clientList) => {
+        for (const client of clientList) {
+          if (client.url.includes(BASE_PATH) && "focus" in client) {
             return client.focus();
+          }
         }
-        if (clients.openWindow) return clients.openWindow(urlToOpen);
+        if (clients.openWindow) {
+          return clients.openWindow(`${BASE_PATH}/#/stories`);
+        }
       })
   );
 });

@@ -1,7 +1,3 @@
-// import "regenerator-runtime";
-// import "../../public/styles/styles.css";
-// import App from "./views/app.js";
-
 import "regenerator-runtime";
 import "../../public/styles/styles.css";
 import App from "./views/app.js";
@@ -13,44 +9,92 @@ const app = new App({
   content: document.querySelector("#mainContent"),
 });
 
-// Re-render halaman setelah navigasi
-// window.addEventListener("hashchange", () => {
-//   app.renderPage();
-// });
-
-// window.addEventListener("load", async () => {
-//   app.renderPage();
-//   registerServiceWorker();
-//   requestNotificationPermission();
-// });
-
 window.addEventListener("hashchange", () => app.renderPage());
+
 window.addEventListener("load", async () => {
   await app.renderPage();
-  registerServiceWorker();
+  await registerServiceWorker();
   requestNotificationPermission();
 });
 
 // ==========================
-// 🔧 Fungsi: Register Service Worker
+// 🔧 Register Service Worker
 // ==========================
 async function registerServiceWorker() {
-  if ("serviceWorker" in navigator) {
-    try {
-      // ✅ BENAR
-      const registration = await navigator.serviceWorker.register("./sw.js");
-
-      console.log("✅ Service Worker berhasil didaftarkan:", registration);
-    } catch (error) {
-      console.error("❌ Gagal mendaftarkan Service Worker:", error);
-    }
-  } else {
+  if (!("serviceWorker" in navigator)) {
     console.warn("⚠️ Service Worker tidak didukung di browser ini");
+    return;
+  }
+
+  try {
+    // ✅ BENAR: untuk GitHub Pages deployment
+    const registration = await navigator.serviceWorker.register(
+      "/storyappfinaljessica/sw.js",
+      {
+        scope: "/storyappfinaljessica/",
+      }
+    );
+
+    console.log("✅ Service Worker registered:", registration);
+
+    // Tunggu hingga SW active
+    await navigator.serviceWorker.ready;
+    console.log("✅ Service Worker is ready");
+
+    // Setup push notification subscription
+    setupPushNotification(registration);
+  } catch (error) {
+    console.error("❌ Service Worker registration failed:", error);
   }
 }
 
 // ==========================
-// 🔔 Fungsi: Meminta izin notifikasi
+// 🔔 Setup Push Notification
+// ==========================
+async function setupPushNotification(registration) {
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+      console.warn("🚫 Notifikasi ditolak oleh user");
+      return;
+    }
+
+    // VAPID public key dari Dicoding
+    const vapidPublicKey =
+      "BCCs2eonMI-6H2ctvFaWg-UYdDv387Vno_bzUzALpB442r2lCnsHmtrx8biyPi_E-1fSGABK_Qs_GlvPoJJqxbk";
+
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+    });
+
+    console.log("✅ Push subscription:", subscription);
+
+    // Kirim subscription ke server (optional)
+    // await sendSubscriptionToServer(subscription);
+  } catch (error) {
+    console.error("❌ Push notification setup failed:", error);
+  }
+}
+
+// Helper untuk convert VAPID key
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, "+")
+    .replace(/_/g, "/");
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+// ==========================
+// 🔔 Request Notification Permission
 // ==========================
 function requestNotificationPermission() {
   if (!("Notification" in window)) {
