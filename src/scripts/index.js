@@ -37,7 +37,8 @@ window.addEventListener("load", async () => {
 async function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
     try {
-      const registration = await navigator.serviceWorker.register("/sw.js");
+      // ✅ BENAR
+      const registration = await navigator.serviceWorker.register("./sw.js");
 
       console.log("✅ Service Worker berhasil didaftarkan:", registration);
     } catch (error) {
