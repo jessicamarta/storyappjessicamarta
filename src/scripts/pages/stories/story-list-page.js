@@ -10,9 +10,9 @@ export default class StoryListPage {
         
         <!-- Button untuk manajemen IndexedDB -->
         <div class="db-controls">
-          <button id="btnLoadFromAPI" class="btn-primary">Load dari API</button>
-          <button id="btnLoadFromDB" class="btn-secondary">Load dari IndexedDB</button>
-          <button id="btnClearDB" class="btn-danger">Clear IndexedDB</button>
+          <button id="btnLoadFromAPI" class="btn-primary">📡 Load dari API</button>
+<button id="btnLoadOffline" class="btn-secondary">💾 Laporan Tersimpan (Offline)</button>
+<button id="btnClearDB" class="btn-danger">🗑️ Hapus Cache</button>
           <span id="dbStatus" aria-live="polite"></span>
         </div>
 
@@ -34,13 +34,14 @@ export default class StoryListPage {
       console.error("❌ #storyList not found");
       return;
     }
+    await this._autoLoad(listEl, dbStatus);
 
     // ✅ Button handlers untuk CRUD IndexedDB
     document.getElementById("btnLoadFromAPI").addEventListener("click", () => {
       this._loadFromAPI(listEl, dbStatus);
     });
 
-    document.getElementById("btnLoadFromDB").addEventListener("click", () => {
+    document.getElementById("btnLoadOffline").addEventListener("click", () => {
       this._loadFromIndexedDB(listEl, dbStatus);
     });
 
@@ -54,6 +55,48 @@ export default class StoryListPage {
 
     // Auto load from IndexedDB on first load
     this._loadFromIndexedDB(listEl, dbStatus);
+  }
+
+  async _autoLoad(listEl, statusEl) {
+    statusEl.textContent = "🔄 Memuat data...";
+
+    try {
+      // Coba ambil dari API
+      const data = await fetchStories({ page: 1, size: 20, location: 1 });
+      const stories = data?.listStory ?? [];
+
+      if (stories.length > 0) {
+        // Simpan ke IndexedDB
+        for (const story of stories) {
+          await StoryDB.put(story);
+        }
+
+        this._renderStories(stories);
+        this._renderMap(stories);
+        statusEl.textContent = `✅ ${stories.length} cerita (online)`;
+      } else {
+        throw new Error("Tidak ada data dari API");
+      }
+    } catch (error) {
+      console.warn("⚠️ API gagal, coba IndexedDB:", error.message);
+
+      // Fallback: ambil dari IndexedDB
+      const cachedStories = await StoryDB.getAll();
+
+      if (cachedStories.length > 0) {
+        this._renderStories(cachedStories);
+        this._renderMap(cachedStories);
+        statusEl.textContent = `💾 ${cachedStories.length} cerita (offline)`;
+      } else {
+        listEl.innerHTML = `
+        <div style="text-align:center; padding:2rem;">
+          <p>⚠️ Tidak ada koneksi internet dan belum ada data offline.</p>
+          <p>Silahkan coba lagi saat online.</p>
+        </div>
+      `;
+        statusEl.textContent = "❌ Tidak ada data";
+      }
+    }
   }
 
   // ✅ CREATE & READ: Load dari API dan simpan ke IndexedDB
@@ -76,8 +119,20 @@ export default class StoryListPage {
       statusEl.textContent = `✅ ${stories.length} stories loaded from API & saved to IndexedDB`;
     } catch (error) {
       console.error("❌ Failed to load from API:", error);
-      statusEl.textContent = "❌ API error, coba load dari IndexedDB";
-      listEl.innerHTML = "<p>Gagal load dari API. Gunakan IndexedDB.</p>";
+      statusEl.textContent = "❌ Gagal memuat dari API";
+      listEl.innerHTML = `
+    <div style="text-align:center; padding:2rem; background:#fff3cd; border-radius:8px;">
+      <p>❌ Gagal mengambil data dari server</p>
+      <p style="font-size:14px; color:#856404;">${error.message}</p>
+      <button id="retryOffline" class="btn-secondary" style="margin-top:1rem;">
+        💾 Lihat Data Offline
+      </button>
+    </div>
+  `;
+
+      document.getElementById("retryOffline")?.addEventListener("click", () => {
+        this._loadFromIndexedDB(listEl, statusEl);
+      });
     }
   }
 

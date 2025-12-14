@@ -2,20 +2,20 @@
   "name": "Dicoding Story App",
   "short_name": "Story App",
   "description": "Aplikasi berbagi cerita seputar Dicoding",
-  "start_url": "/storyappfinaljessica/",
+  "start_url": "/storyappjessicamarta/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#f12b9f",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/storyappfinaljessica/icons/icon-192.png",
+      "src": "/storyappjessicamarta/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/storyappfinaljessica/icons/icon-512.png",
+      "src": "/storyappjessicamarta/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -23,7 +23,7 @@
   ],
   "screenshots": [
     {
-      "src": "/storyappfinaljessica/screenshots/home.png",
+      "src": "/storyappjessicamarta/screenshots/home.png",
       "sizes": "540x720",
       "type": "image/png"
     }
@@ -33,10 +33,10 @@
       "name": "Lihat Stories",
       "short_name": "Stories",
       "description": "Lihat daftar cerita terbaru",
-      "url": "/storyappfinaljessica/#/stories",
+      "url": "/storyappjessicamarta/#/stories",
       "icons": [
         {
-          "src": "/storyappfinaljessica/icons/icon-192.png",
+          "src": "/storyappjessicamarta/icons/icon-192.png",
           "sizes": "192x192"
         }
       ]

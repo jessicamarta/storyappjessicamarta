@@ -7,7 +7,7 @@ const RUNTIME_CACHE = "story-runtime-v3";
 const API_CACHE = "story-api-v3";
 
 // ✅ Path untuk GitHub Pages deployment
-const BASE_PATH = "/storyappfinaljessica";
+const BASE_PATH = "/storyappjessicamarta";
 
 const PRECACHE_URLS = [
   `${BASE_PATH}/`,
@@ -145,8 +145,8 @@ self.addEventListener("push", (event) => {
   let notificationData = {
     title: "New Story",
     body: "Ada story baru!",
-    icon: `${BASE_PATH}/icons/icon-192.png`,
-    badge: `${BASE_PATH}/icons/icon-192.png`,
+    icon: "/storyappjessicamarta/icons/icon-192.png",
+    badge: "/storyappjessicamarta/icons/icon-192.png",
   };
 
   if (event.data) {

@@ -29,9 +29,9 @@ async function registerServiceWorker() {
   try {
     // ✅ BENAR: untuk GitHub Pages deployment
     const registration = await navigator.serviceWorker.register(
-      "/storyappfinaljessica/sw.js",
+      "/storyappjessicamarta/sw.js",
       {
-        scope: "/storyappfinaljessica/",
+        scope: "/storyappjessicamarta/",
       }
     );
 
@@ -69,11 +69,44 @@ async function setupPushNotification(registration) {
     });
 
     console.log("✅ Push subscription:", subscription);
+    await sendSubscriptionToServer(subscription);
 
     // Kirim subscription ke server (optional)
     // await sendSubscriptionToServer(subscription);
   } catch (error) {
     console.error("❌ Push notification setup failed:", error);
+  }
+}
+
+async function sendSubscriptionToServer(subscription) {
+  const token = localStorage.getItem("dicoding_token");
+
+  if (!token) {
+    console.warn("⚠️ User belum login, skip send subscription");
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      "https://story-api.dicoding.dev/v1/stories/push/subscribe",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(subscription),
+      }
+    );
+
+    if (response.ok) {
+      console.log("✅ Subscription berhasil dikirim ke server");
+    } else {
+      const error = await response.json();
+      console.error("❌ Gagal kirim subscription:", error);
+    }
+  } catch (error) {
+    console.error("❌ Error kirim subscription:", error);
   }
 }
 
