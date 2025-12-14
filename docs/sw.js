@@ -2,9 +2,9 @@
    🌐 Service Worker - Story App (FIXED VERSION)
 ================================== */
 
-const CACHE_NAME = "story-app-v3";
-const RUNTIME_CACHE = "story-runtime-v3";
-const API_CACHE = "story-api-v3";
+const CACHE_NAME = "story-app-v4";
+const RUNTIME_CACHE = "story-runtime-v4";
+const API_CACHE = "story-api-v4";
 
 // ✅ Path untuk GitHub Pages deployment
 const BASE_PATH = "/storyappjessicamarta";
